@@ -1115,7 +1115,7 @@ class Agent:
             for iteration in range(1, MAX_ITERATIONS + 1):
                 print(f"\n{'─' * 40}\nITERATION {iteration}")
 
-                # ── reflection ─────────────────────────────────────────
+                # reflection 
                 should_replan, reason = self.reflection.evaluate()
                 if should_replan:
                     print(f"  [REPLAN] {reason}")
@@ -1219,7 +1219,7 @@ class Agent:
                     self.budget.record_step("Final answer produced")
                     break
 
-                # ── No valid action ─────────────────────────────────────
+                #  No valid action 
                 if not parsed["action"]:
                     format_error_streak += 1
                     print(
