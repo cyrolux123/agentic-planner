@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  # ── Run all 5 benchmark tasks and write test_results.md ──────────────────
+  run-tasks:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
+    volumes:
+      - ./results:/app/results   # persist JSON output
+      - .:/app                   # live-reload source (dev only)
+    command: python tests/run_tasks.py
+
+  # ── Single task (override TASK env var) ──────────────────────────────────
+  single-task:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
+    command: >
+      python main.py "${TASK:-What is the capital of France?}"
+
+  # ── Interactive REPL ──────────────────────────────────────────────────────
+  interactive:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
+    stdin_open: true
+    tty: true
+    command: python main.py --interactive
