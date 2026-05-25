@@ -8,14 +8,14 @@ No paid API keys required.
 
 ## Features
 
-- ✅ Hard budget enforcement (LLM calls + cost limits)
-- ✅ Semantic loop detection using Jaccard similarity
-- ✅ Dynamic replanning and reflection
-- ✅ Mandatory tool switching after repeated failures
-- ✅ Automatic Llama3 → Mistral fallback
-- ✅ Cross-platform timeout handling
-- ✅ Docker and local execution support
-- ✅ Fully auditable ReAct reasoning loop
+-  Hard budget enforcement (LLM calls + cost limits)
+-  Semantic loop detection using Jaccard similarity
+-  Dynamic replanning and reflection
+-  Mandatory tool switching after repeated failures
+-  Automatic Llama3 → Mistral fallback
+-  Cross-platform timeout handling
+-  Docker and local execution support
+-  Fully auditable ReAct reasoning loop
 
 ---
 
