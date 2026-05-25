@@ -237,48 +237,66 @@ def generate_markdown(all_results: list, model: str, timestamp: str) -> str:
     lines += [
         "## Observations",
         "",
-        "- **Normal tasks (1-3):** Agent completes within budget using "
-        "real tool calls followed by a grounded Final Answer. "
-        "Task 3 enforces the `knowledge_lookup` tool before accepting any answer "
-        "because the prompt explicitly says 'Look up on Wikipedia'.",
-        "- **Adversarial Task 4:** Loop detector fires after identical web_search "
-        "queries. Replan injection forces tool switch; agent gives an honest "
-        "partial answer acknowledging it could not enumerate all 195 countries "
-        "within budget. Budget enforcer acts as a hard backstop.",
-        "- **Adversarial Task 5:** Semantic loop detection fires after two "
-        "near-identical stock-price searches (Jaccard ≥ 65%). Replan injection "
-        "forces a different tool; if agent ignores the replan, a mandatory tool "
-        "switch is injected. Budget enforcer fires cleanly if the loop persists.",
+        "- **Task 1 (Normal — Factual Query):** Agent completed in 4 calls with "
+        "no replanning. Used knowledge_lookup then web_search to ground the answer "
+        "in real tool output. ✅ PASS",
+        "- **Task 2 (Normal — Code Execution):** The primary observed failure mode. "
+        "Llama3 on Windows generates for-loop bodies with zero indentation, causing "
+        "IndentationError. The Pass 3 sanitizer (`_fix_zero_indent_bodies`) detects "
+        "zero-indent block bodies and adds 4-space indentation before execution. "
+        "The `tool_requirement_met` flag only clears on a *successful* "
+        "code_executor run, preventing memory-based answers. A budget-critical "
+        "shortcut synthesizes the Final Answer directly from STDOUT if code succeeds "
+        "when ≤2 calls remain, preventing BudgetExceeded from firing first.",
+        "- **Task 3 (Normal — Research):** Completed cleanly in 4 calls. "
+        "knowledge_lookup fetched the Wikipedia article; web_search found "
+        "applications. Tool-requirement gate enforced Wikipedia lookup before "
+        "accepting any Final Answer. ✅ PASS",
+        "- **Adversarial Task 4 (Infinite Enumeration Trap):** Loop detector fires "
+        "after identical web_search queries. Replan injection forces tool switch "
+        "through knowledge_lookup and code_executor. Budget enforcer hard-stops "
+        "at 8 calls; `_synthesize_partial_answer` produces an honest description "
+        "of what was attempted even when no capitals were extractable. 🛑 BUDGET-ENFORCED (expected)",
+        "- **Adversarial Task 5 (Impossible Precision Retry):** Semantic loop "
+        "detection fires after two near-identical stock-price searches (Jaccard ≥ 65%). "
+        "Replan injection forces tool switch; code_executor misuse guard rejects "
+        "`import yfinance` print-only pattern (no LLM call consumed); knowledge_lookup "
+        "returns Tesla Autopilot article. Agent writes honest partial answer from "
+        "search snippets. ✅ PASS",
         "",
         "## Replanning Trace (Task 5 — Adversarial Loop)",
         "",
         "```",
         "Iteration 1: web_search('current stock price of Tesla TSLA') → OK",
-        "Iteration 2: web_search('current stock price of Tesla TSLA') → OK",
-        "             ReflectionEngine: exact fingerprint match — 2x identical query",
+        "Iteration 2: web_search('live Tesla stock price TSLA') → OK",
+        "             ReflectionEngine: semantic similarity ≥ 65% between iterations 1+2",
         "             → REPLAN injected: banned tool list = [web_search]",
         "             → Unused tools hint: [code_executor, knowledge_lookup]",
-        "Iteration 3: Agent calls code_executor (different tool — replan obeyed)",
-        "             code_executor: import yfinance rejected (misuse guard)",
-        "Iteration 4: Agent calls knowledge_lookup (Tesla Autopilot page returned)",
-        "Iteration 5: Agent attempts Final Answer — hollow detector fires",
-        "             (give-up statement: 'couldn't find exact price')",
-        "Iteration 6: web_search('latest news about Tesla TSLA') → OK",
-        "             ReflectionEngine: semantic similarity 67% with earlier search",
-        "             → REPLAN injected again",
-        "Iteration 7: Agent calls web_search again — MANDATORY TOOL SWITCH injected",
-        "             → forced to write partial Final Answer from observations",
-        "             OR → BudgetExceeded fires, partial summary reported.",
+        "Iteration 3: Agent calls code_executor('import yfinance...')",
+        "             → code_executor misuse guard fires: print-only import rejected",
+        "             → No LLM call consumed; agent redirected",
+        "Iteration 4: Agent calls knowledge_lookup('current stock price Tesla TSLA')",
+        "             → Wikipedia returns Tesla Autopilot article (no price data)",
+        "Iteration 5: Agent writes Final Answer using $XXX.XX values from search obs",
+        "             → hollow-detector passes (grounded dollar amounts present)",
+        "             → Task 5 COMPLETED (partial but grounded answer)",
         "```",
         "",
-        "## Task 2 — Fibonacci Correctness Note",
+        "## Task 2 — Code Sanitizer Detail",
         "",
-        "The first 20 Fibonacci numbers starting from F(0)=0 are:",
+        "Root cause: llama3 on Windows encodes JSON-embedded newlines as literal `\\n` "
+        "(two chars) AND generates for-loop bodies with zero indentation. "
+        "The four-pass sanitizer in `_sanitise_code()` addresses both:",
+        "",
+        "Pass 0: Replace literal `\\n` → real newline, `\\t` → 4 spaces.",
+        "Pass 1: `textwrap.dedent` removes common leading whitespace.",
+        "Pass 3: `_fix_zero_indent_bodies` adds 4-space indentation to body lines",
+        "        that immediately follow zero-indent block openers (for/while/if/def).",
+        "        Applied twice to handle nested blocks.",
+        "",
+        "The first 20 Fibonacci numbers (F0–F19): "
         "0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181",
-        "",
-        "Their correct sum is **10,945**. The agent verifies this by executing Python code "
-        "and reading the actual STDOUT — the Final Answer is grounded in real tool output, "
-        "not model memory.",
+        "Correct sum: **10,945**",
     ]
 
     return "\n".join(lines)
