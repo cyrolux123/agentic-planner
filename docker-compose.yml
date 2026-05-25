@@ -1,7 +1,7 @@
 version: "3.9"
 
 services:
-  # ── Run all 5 benchmark tasks and write test_results.md ──────────────────
+  #  Run all 5 benchmark tasks and write test_results.md 
   run-tasks:
     build: .
     env_file:
@@ -14,7 +14,7 @@ services:
       - .:/app                   # live-reload source (dev only)
     command: python tests/run_tasks.py
 
-  # ── Single task (override TASK env var) ──────────────────────────────────
+  #  Single task (override TASK env var) 
   single-task:
     build: .
     env_file:
@@ -25,7 +25,7 @@ services:
     command: >
       python main.py "${TASK:-What is the capital of France?}"
 
-  # ── Interactive REPL ──────────────────────────────────────────────────────
+  #  Interactive REPL 
   interactive:
     build: .
     env_file:
