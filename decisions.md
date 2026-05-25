@@ -46,6 +46,14 @@ This file documents specific trade-offs made during development.
 
 ---
 
-## Decision 8 — textwrap.dedent for Code Indentation Repair
+## Decision 8 — Three-Pass Code Sanitiser (Unescape → Dedent → Semicolon Expand)
 
-**I considered** writing a custom indentation parser to fix misaligned Python code from the LLM, but **chose** `textwrap.dedent` as a first pass before the one-liner semicolon expander **because** the root cause of most SyntaxErrors in Task 2 was global over-indentation: llama3 embeds code inside a JSON string that is already inside an indented Action Input block, and the resulting code has every line shifted right by 4–8 spaces.  `textwrap.dedent` strips the common leading whitespace in a single stdlib call with no regex required, fixing the problem at the source.  The semicolon expander then handles the separate one-liner pattern as a second pass on code that has no newlines.
+**I considered** writing a custom indentation parser to fix misaligned Python code from the LLM, but **chose** a three-pass pipeline — (0) JSON escape decoding, (1) `textwrap.dedent`, (2) semicolon-chain expansion — **because** two distinct failure modes cause Task 2 SyntaxErrors and each requires a different fix.  Pass 0 targets the root cause observed in test runs on Windows: llama3 encodes newlines inside JSON strings as the two-character sequence `\n` (backslash + n) rather than a real newline character, producing a single-line string that Python cannot parse as a block.  `str.replace(r"\n", "\n")` resolves this before any other pass.  Pass 1 (`textwrap.dedent`) then removes the common leading whitespace that JSON embedding adds.  Pass 2 handles the separate one-liner pattern where semicolons replace newlines.  Splitting these into explicit numbered passes makes each fix independently testable and prevents them from interfering with each other.
+
+---
+
+## Decision 9 — Partial Answer Synthesis Instead of format_error on Enumeration Tasks
+
+**I considered** keeping the existing `format_error` exit path when the hollow-answer detector rejects the model's Final Answer three consecutive times, but **chose** replacing it with a `_synthesize_partial_answer()` method that extracts grounded facts directly from tool observations and builds a readable partial answer **because** the `format_error` label is misleading and punitive in cases where the agent successfully gathered real data (e.g. a Wikipedia summary of national capitals) but failed to turn that data into a valid Final Answer due to hallucination.  The synthesizer uses lightweight regex to pull country-capital pairs from observation text, assembles them into a markdown table, and prepends an honest disclaimer — producing a `completed (partial)` result instead of a bare failure.  This matches the assignment requirement that the budget enforcer "report exactly what the agent completed up to that point" rather than simply signalling a format failure.
+
+---

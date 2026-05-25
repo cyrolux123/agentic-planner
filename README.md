@@ -315,7 +315,3 @@ Planned enhancements:
 - More advanced reflection heuristics
 
 ---
-
-## License
-
-MIT License
