@@ -1,8 +1,7 @@
-# ──────────────────────────────────────────────────────────────────────────────
 # Resource-Constrained Agentic Planning Loop
 # Runs against an Ollama instance on the host machine.
 # Primary model: llama3   Fallback: mistral
-# ──────────────────────────────────────────────────────────────────────────────
+
 FROM python:3.11-slim
 
 # System deps for duckduckgo-search (needs curl/ssl)
