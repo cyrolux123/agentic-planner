@@ -31,7 +31,7 @@ from agent.agent import Agent, AgentResult, DEFAULT_MODEL, OLLAMA_HOST
 FALLBACK_MODEL = "mistral"
 
 
-# ── model resolution ──────────────────────────────────────────────────────────
+# model resolution ─
 
 def _resolve_model(requested: str) -> str:
     """Return `requested` if available in Ollama, else fall back to mistral."""
@@ -51,8 +51,7 @@ def _resolve_model(requested: str) -> str:
         return requested
 
 
-# ── task definitions ──────────────────────────────────────────────────────────
-
+#  task definitions 
 @dataclass
 class TaskSpec:
     id: int
@@ -128,7 +127,7 @@ TASKS: List[TaskSpec] = [
 ]
 
 
-# ── runner ────────────────────────────────────────────────────────────────────
+# runner 
 
 def run_task(spec: TaskSpec, model: str) -> dict:
     """Run one task and return a result dict with timing info."""
@@ -302,7 +301,7 @@ def generate_markdown(all_results: list, model: str, timestamp: str) -> str:
     return "\n".join(lines)
 
 
-# ── main ──────────────────────────────────────────────────────────────────────
+#  main 
 
 def main() -> None:
     parser = argparse.ArgumentParser(

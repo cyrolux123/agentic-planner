@@ -30,7 +30,7 @@ from .tools.web_search import WebSearchTool
 from .tools.code_executor import CodeExecutorTool
 from .tools.knowledge_lookup import KnowledgeLookupTool
 
-# ── defaults ──────────────────────────────────────────────────────────────────
+# defaults 
 DEFAULT_MODEL: str = os.getenv("OLLAMA_MODEL", "llama3")
 OLLAMA_HOST:   str = os.getenv("OLLAMA_HOST",  "http://localhost:11434")
 MAX_ITERATIONS:       int = 20
@@ -39,7 +39,7 @@ OBSERVATION_TRUNCATE: int = 2_000
 # Tool names the model uses instead of writing "Final Answer"
 _PSEUDO_TOOLS = frozenset({"final", "final_answer", "answer", "none", "n/a", "null"})
 
-# ── prompt ────────────────────────────────────────────────────────────────────
+# prompt 
 
 _SYSTEM_TEMPLATE = """\
 You are an autonomous AI agent. Solve the task step by step using tools.
@@ -161,7 +161,7 @@ Do NOT call code_executor again with a print() statement.
 """
 
 
-# ── result ────────────────────────────────────────────────────────────────────
+# result 
 
 class AgentResult:
     def __init__(
@@ -194,7 +194,7 @@ class AgentResult:
         }
 
 
-# ── helpers ───────────────────────────────────────────────────────────────────
+#  helpers 
 
 def _is_code_misuse(code: str) -> bool:
     """
@@ -334,11 +334,11 @@ def _sanitise_code(code: str) -> str:
                this.  _fix_zero_indent_bodies() adds 4-space indentation to
                body lines that immediately follow a zero-indent block opener.
     """
-    # ── Pass 0: decode JSON-escaped whitespace sequences ─────────────
+    #  Pass 0: decode JSON-escaped whitespace sequences 
     if r"\n" in code:
         code = code.replace(r"\r\n", "\n").replace(r"\n", "\n").replace(r"\t", "    ")
 
-    # ── Pass 1: fix common leading whitespace ─────────────────────────
+    #  Pass 1: fix common leading whitespace 
     if "\n" in code:
         code = textwrap.dedent(code)
         code = "\n".join(line.rstrip() for line in code.splitlines())
@@ -348,7 +348,7 @@ def _sanitise_code(code: str) -> str:
         code = _fix_zero_indent_bodies(code)
         return code
 
-    # ── Pass 2: expand one-liner semicolon chains ─────────────────────
+    # Pass 2: expand one-liner semicolon chains 
     if not re.search(
         r"\b(for|while|if|elif|else|def|class|with|try|except|finally)\b"
         r"[^;]+:\s*[^;]+;",
@@ -727,7 +727,7 @@ def _task_requires_tool(task: str) -> Optional[str]:
     return None
 
 
-# ── agent ─────────────────────────────────────────────────────────────────────
+#  agent 
 
 class Agent:
     """Resource-constrained ReAct agent backed by Ollama (llama3 primary)."""
@@ -942,7 +942,7 @@ class Agent:
         if not observations:
             return ""
 
-        # ── Extract capital-city facts from observations ──────────────
+        # Extract capital-city facts from observations 
         # Pattern set — each tuple is (regex, country_group, capital_group)
         # so we never have to guess which group is which.
         capital_pairs: list = []
@@ -1004,7 +1004,7 @@ class Agent:
                         seen_countries.add(country_key)
                         capital_pairs.append((country, capital))
 
-        # ── Build the answer text ──────────────────────────────────────
+        #  Build the answer text 
         lines: List[str] = []
 
         # Detect whether this is an enumeration task (countries/capitals)
@@ -1141,7 +1141,7 @@ class Agent:
                 if parsed["thought"]:
                     print(f"  [Thought] {parsed['thought'][:200]}")
 
-                # ── Final Answer ────────────────────────────────────────
+                #  Final Answer
                 if parsed["final_answer"]:
                     # Block zero-tool Final Answers when the task demands tool use
                     if not tool_requirement_met:
@@ -1239,7 +1239,7 @@ class Agent:
 
                 format_error_streak = 0
 
-                # ── Detect replan being ignored ─────────────────────────
+                # Detect replan being ignored 
                 # If we issued a replan banning certain tools and the agent
                 # immediately calls one of those banned tools again, we
                 # inject a stronger forced-switch message.
@@ -1283,7 +1283,7 @@ class Agent:
                         replan_ignored_count = 0
                         continue
 
-                # ── Code misuse guard ───────────────────────────────────
+                #  Code misuse guard 
                 if tool_name == "code_executor" and "code" in tool_input:
                     if _is_code_misuse(tool_input["code"]):
                         print(
@@ -1307,12 +1307,12 @@ class Agent:
                         })
                         continue   # next iteration — no LLM call consumed
 
-                # ── Tool execution ──────────────────────────────────────
+                # Tool execution 
                 print(f"  [Action] {tool_name}({json.dumps(tool_input)[:120]})")
                 observation, success = self._run_tool(tool_name, tool_input)
                 obs_display = observation[:OBSERVATION_TRUNCATE]
 
-                # ── Correct success/failure labelling ───────────────────
+                # Correct success/failure labelling 
                 # An exit code != 0 in the observation means the code failed,
                 # even if the tool itself ran without exception.
                 effective_success = success

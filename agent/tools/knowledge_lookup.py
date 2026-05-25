@@ -70,10 +70,8 @@ class KnowledgeLookupTool(Tool):
             return f"Error: {container['error']}"
         return container["result"] or f"No information found for: '{topic}'"
 
-    # ------------------------------------------------------------------
+   
     # Internal helpers
-    # ------------------------------------------------------------------
-
     def _fetch_summary(self, topic: str) -> str:
         """Try direct slug lookup, then fall back to search API."""
         slug = topic.replace(" ", "_")
@@ -93,7 +91,7 @@ class KnowledgeLookupTool(Tool):
                 f"for slug '{slug}'."
             )
 
-        # ── fallback: full-text search ──────────────────────────────────
+        # fallback: full-text search 
         search_resp = requests.get(
             WIKI_SEARCH_URL,
             params={

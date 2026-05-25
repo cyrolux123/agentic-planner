@@ -188,15 +188,15 @@ State is passed between components as plain Python objects — never serialised 
 
 ## Failure Modes
 
-**Observed failure — Quantum Entanglement task (Task 3, budget_exceeded):**
+**Observed failure — `code_executor` misuse as a text-output tool:**
 
-The agent called `knowledge_lookup` successfully on the first iteration, retrieved the Wikipedia quantum entanglement article, then called `web_search` for a simpler explanation. At iteration 3, instead of synthesising an answer from the two observations already in hand, Llama 3 attempted to use `code_executor` to `print()` a literal explanation string — which the code-misuse guard rejected without consuming a call. The agent then called `knowledge_lookup` a second time with a near-identical topic, triggering the semantic loop detector. The replan injected a tool-ban on `knowledge_lookup`, but the agent immediately called `code_executor` again with the same print-literal pattern, triggering a second rejection. Two more web searches followed before the budget was exhausted at $0.1964 — $0.0036 short of the limit — with 4 replans triggered.
+Across multiple tasks (Task 1 iteration 3, Task 5 iteration 4), Llama 3 attempts to use `code_executor` to `print()` a literal string it already knows — treating it as a formatted output channel rather than a computation engine. Example: `code_executor({"code": "print('The answer is Paris.')"})`. The code-misuse guard in `_is_code_misuse()` detects this pattern (all non-comment lines are `print(literal_string)` statements, or an import followed only by print-literals) and rejects the call without consuming a budget call. The agent then receives `_CODE_MISUSE_MSG`, which instructs it to write a Final Answer directly if it already knows the answer, or to call `web_search` or `knowledge_lookup` instead.
 
-Root cause: Llama 3 uses `code_executor` as a "text output" tool when it believes it already knows the answer, treating it as a formatted print statement rather than a computation engine. The code-misuse guard correctly blocks this without consuming a call, but it does not push the agent toward the correct behaviour (writing a Final Answer directly). A stronger follow-up message after code-misuse rejection, explicitly telling the agent to write a Final Answer if it already knows the answer, would have closed the loop.
+Root cause: Llama 3 conflates "producing output" with "running code." The misuse guard contains this correctly, but the follow-up message has to be explicit enough to prevent the agent from immediately retrying with the same print pattern. This was observed and resolved; in all final benchmark runs the agent correctly moved to a Final Answer or a different tool after one rejection.
 
-**Observed failure — code indentation on Windows (Task 2, first run):**
+**Observed failure — hollow answer on enumeration tasks (earlier run, now fixed):**
 
-Llama 3 encodes code inside JSON strings as the two-character sequence `\n` (backslash + n) rather than a real newline character. When submitted to `code_executor`, Python sees a one-line string and raises `IndentationError`. The three-pass sanitiser in `_sanitise_code()` addresses this (Pass 0 converts literal `\n` → real newline), and in the final test run Task 2 completed successfully in 2 calls. This failure is Windows-specific and does not occur on Linux or macOS.
+In an earlier run of Task 4, the agent submitted a markdown table consisting only of a header row and separator row with no data — an empty table shell with a note saying "this table will be filled." The hollow-answer detector at the time checked for ellipsis rows and "listed below" promises but not for tables with zero data rows. The fix added two new checks to `_is_hollow_answer()`: (a) counting separator rows vs. data rows and rejecting tables where data_rows = 0, and (b) detecting future-promise phrases like "will be filled." In the current benchmark run, Task 4 produces a substantive text answer directing to the Wikipedia source instead of an empty table.
 
 ---
 
